@@ -1,0 +1,7 @@
+__pycache__/
+runx/
+data/
+results/
+examples/
+notebooks/*
+!notebooks/create-dataset.ipynb

@@ -1,0 +1,9 @@
+CMD: 'python run.py'
+HPARAMS:
+  RUNX.TAG: 'SPIE2023-pix2pix' # Prefix for the directories created for each run.
+
+  # 3-Tuple: conifguration file, data directory, and function to invoke from train.
+  config: [
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled"
+  ]
+  config.dataloader.weights_key: ["weights", "dilated_weights"]
