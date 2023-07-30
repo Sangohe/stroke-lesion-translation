@@ -4,6 +4,12 @@ HPARAMS:
 
   # 3-Tuple: conifguration file, data directory, and function to invoke from train.
   config: [
-    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled"
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key weights",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key dilated_weights",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key volumetric_dilated_weights",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key weights",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key dilated_weights",
+    "configs/run.py:pix2pix,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key volumetric_dilated_weights"
   ]
-  config.dataloader.weights_key: ["weights", "dilated_weights"]

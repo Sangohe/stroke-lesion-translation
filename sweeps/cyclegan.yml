@@ -1,0 +1,19 @@
+CMD: 'python run.py'
+HPARAMS:
+  RUNX.TAG: 'SPIE2023-cyclegan' # Prefix for the directories created for each run.
+
+  # 3-Tuple: conifguration file, data directory, and function to invoke from train.
+  config: [
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key weights",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key dilated_weights",
+    "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-0_5_1_0_3_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key volumetric_dilated_weights",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key weights",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key dilated_weights",
+    # "configs/run.py:cyclegan,/home/sangohe/projects/lesion-aware-translation/data/APIS_synth-1_0_3_0_10_0_shuffled --config.dataloader.class_weights --config.dataloader.weights_key volumetric_dilated_weights",
+  ]
+  config.dataloader.batch_size: 8
+  config.base_lr: 5e-4
+  config.warmup_lr: 5e-4
+  config.epochs: 100
