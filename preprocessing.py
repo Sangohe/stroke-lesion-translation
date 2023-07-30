@@ -8,6 +8,35 @@ from typing import Tuple, Callable
 # ----------------------------------------------------------------
 
 
+def volumetric_dilated_sample_weights(
+    mask: np.ndarray, inf_val: float = 0.1, sup_val: float = 0.8, steps: int = 64
+) -> np.ndarray:
+    """Computes sample weights for a binary mask by dilating it with a structuring element.
+
+    Args:
+        mask (np.ndarray): Binary mask to compute sample weights for.
+        inf_val (float, optional): Minimum sample weight. Defaults to 0.1.
+        sup_val (float, optional): Maximum sample weight. Defaults to 0.8.
+        steps (int, optional): Number of steps between minimum and maximum sample weight. Defaults to 64.
+
+    Returns:
+        np.ndarray: Dilated sample weights for the binary mask slice.
+    """
+    mask_int = mask.astype(np.uint8)
+    weights = np.linspace(sup_val, inf_val, steps)
+    dilated_weights = np.ones(mask.shape) * inf_val
+    dilated_weights[mask_int.astype(np.uint8) == 1] = sup_val
+
+    mask_to_dilate = mask_int
+    struct = ndimage.generate_binary_structure(rank=3, connectivity=2)
+    for k in range(weights.shape[0] - 1):
+        img_d = ndimage.binary_dilation(mask_to_dilate, struct)
+        dilated_weights[img_d - mask_to_dilate.astype(np.uint8) == 1] = weights[k + 1]
+        mask_to_dilate = img_d
+
+    return dilated_weights
+
+
 def dilated_sample_weights(
     mask: np.ndarray, inf_val: float = 0.1, sup_val: float = 0.8, steps: int = 64
 ) -> np.ndarray:
@@ -179,6 +208,13 @@ def ct_normalization(arr: np.ndarray) -> Tuple[np.ndarray, float, float]:
     arr = np.clip(arr, lower_bound, upper_bound)
     arr_norm = (arr - lower_bound) / (upper_bound - lower_bound)
     return arr_norm, mean, std
+
+
+def ct_denormalization(arr: np.ndarray) -> np.ndarray:
+    """Denormalize the given numpy array using z-score normalization. Values are fixed for
+    because we know before hand about the min and max values."""
+    MIN_VAL, MAX_VAL = -100, 400
+    return arr * (MAX_VAL - MIN_VAL) + (MIN_VAL)
 
 
 # Utilities.

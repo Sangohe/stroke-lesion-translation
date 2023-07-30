@@ -16,6 +16,8 @@ feature_desc = {
     "weights_shape": tf.io.FixedLenFeature([3], tf.int64),
     "dilated_weights": tf.io.FixedLenFeature([], tf.string),
     "dilated_weights_shape": tf.io.FixedLenFeature([3], tf.int64),
+    "volumetric_dilated_weights": tf.io.FixedLenFeature([], tf.string),
+    "volumetric_dilated_weights_shape": tf.io.FixedLenFeature([3], tf.int64),
 }
 
 
