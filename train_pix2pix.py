@@ -38,6 +38,8 @@ def train(config: ml_collections.ConfigDict):
     print(f"Evaluation directory: {os.path.basename(config.evaluation_dir)}")
 
     print("Loading datasets...")
+    if config.dataloader.class_weights:
+        print(f"Dataloader will include {config.dataloader.weights_key}.")
     train_dset = get_dataset(config.dataloader.train_tfrecord_path, **config.dataloader)
     valid_dset = get_dataset(
         config.dataloader.valid_tfrecord_path,
@@ -54,7 +56,6 @@ def train(config: ml_collections.ConfigDict):
         total_steps = (
             int(NUM_TRAIN_SAMPLES / config.dataloader.batch_size) * config.epochs
         )
-        print(total_steps)
         warmup_steps = int(total_steps * config.warmup_epoch_percentage)
         lrs = WarmUpCosine(
             learning_rate_base=config.base_lr,
@@ -189,7 +190,7 @@ def fit(
                 discriminator,
                 input_image,
                 target,
-                weights=weights,
+                weights=weights,  # ?: Should use None to compare losses of different runs.
             )
 
             val_gen_total_loss_tracker.update_state(val_gen_total_loss)
