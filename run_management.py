@@ -35,6 +35,26 @@ def find_next_idx(dir_content: List[str]) -> str:
     return f"{next_idx:03d}"
 
 
+def get_path_of_directory_with_id(dir_id: str, results_dir: dir = "results"):
+    if isinstance(dir_id, int):
+        dir_id = f"{dir_id:03d}"
+
+    if results_dir == "":
+        raise ValueError("`results_dir` can not be an empty string")
+
+    experiment_names = sorted(os.listdir(results_dir))
+    if len(experiment_names) == 0:
+        raise ValueError(f"There are no experiments in {results_dir}")
+
+    experiment_ids = [n.split("-")[0] for n in experiment_names]
+    if not dir_id in experiment_ids:
+        raise ValueError(f"There is no directory with {dir_id} id")
+    else:
+        idx_of_dir = experiment_ids.index(dir_id)
+        experiment_dir_with_id = experiment_names[idx_of_dir]
+        return os.path.join(results_dir, experiment_dir_with_id)
+
+
 class Logger(object):
     """Redirect stderr to stdout, optionally print stdout to a file, and
     optionally force flushing on both stdout and the file.
