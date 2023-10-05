@@ -65,7 +65,8 @@ def get_dataset(
             return ncct, adc, weights
 
         dset = dset.map(augmentation, num_parallel_calls=AUTOTUNE)
-
+    # poner random crop.
+    # dset = dset.map(random_crop)
     dset = dset.map(lambda x, y, w: (x, y)) if not class_weights else dset
     dset = dset.repeat() if repeat else dset
     dset = (
@@ -78,16 +79,31 @@ def get_dataset(
     return dset
 
 
+# def random_crop(img, lbl, weights):
+#     if weights.sum() > 0:
+#         haga un crop mas forzado.
+#         calcular x, y y randomizar w, h.
+#     else:
+#         data_concat = tf.concatenate((img, lbl, weights), axis=-1)
+#         patch_data_concat = tf.keras.layers.RandomCrop()(data_concat)
+#         patch_img, patch_lbl, patches_weights = patch_data_concat[..., 0], patch_data_concat[..., 1], patch_data_concat[..., 2]
+#     return patch_img, patch_lbl, patches_weights
+
 def parse_example(example_proto, weights_key):
     example = tf.io.parse_single_example(example_proto, feature_desc)
     ncct = tf.io.parse_tensor(example["ncct"], tf.float32)
     ncct = tf.reshape(ncct, example["ncct_shape"])
-    ncct = tf.image.resize(ncct, [256, 256])
+    ncct = tf.image.resize(ncct, [128, 128])
     adc = tf.io.parse_tensor(example["adc"], tf.float32)
     adc = tf.reshape(adc, example["adc_shape"])
-    adc = tf.image.resize(adc, [256, 256])
+    adc = tf.image.resize(adc, [128, 128])
     weights = tf.io.parse_tensor(example[weights_key], tf.float32)
     weights = tf.reshape(weights, example[weights_key + "_shape"])
     interpolation = "nearest" if weights_key == "weights" else "bilinear"
-    weights = tf.image.resize(weights, [256, 256], method=interpolation)
+    weights = tf.image.resize(weights, [128, 128], method=interpolation)
+
+    # Rescale to [-1, 1].
+    ncct = (ncct - 0.5) * 2.0
+    adc = (adc - 0.5) * 2.0
+
     return ncct, adc, weights
