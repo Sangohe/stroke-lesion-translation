@@ -2,6 +2,13 @@
 
 Gustavo Garzón, Santiago Gómez, Fabio Martínez
 
+## How to use the project
+
+### Implement a model
+There exists a directory named `model` where you have to implement the desired architecture. Afterwards, a file named after `train_$model_name.py` should be created in the root of the project.
+
+
+
 ## Run
 
 ```bash
@@ -21,7 +28,12 @@ In the `examples` directory are stored the data and masks for patients with isch
 | test_022   | Easy       | 69 (11)     | The lesion is clearly visible in the NCCT (easy difficulty)                                             |
 | test_037   | Middle     | 105 (17)    | The lesion in the NCCT is located at a superior with a subtle hypoattentuation (middle difficulty)      |
 
+# Requirements
+pip install runx
+pip install -qq git+https://github.com/keras-team/keras-cv@master
+
 # Todos
 
 - [ ] Add more details about the run
 - [ ] Add details about how to reproduce env
+- [ ] Finish the `predict_and_save` function and add the code to the train_*.py
