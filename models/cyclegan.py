@@ -7,7 +7,7 @@ def CasnetGenerator(
     input_shape,
     out_channels,
     out_activation="sigmoid",
-    n_blocks=2,
+    n_blocks=1,
     use_instance_norm=True,
     name=None,
     **kwargs,
@@ -16,17 +16,13 @@ def CasnetGenerator(
     input_tensor = layers.Input(shape=input_shape)
     x = input_tensor
     for i in range(n_blocks):
-        x = u_block(x, block_prefix=f"UBlock{i+1}", use_instance_norm=use_instance_norm)
-
-    # Last operation: 1x1 conv to map the image to the input n_channels.
-    x = layers.Conv2D(
-        out_channels,  # input_tensor.shape[-1]
-        kernel_size=(1, 1),
-        name="logits",
-    )(x)
-    output = layers.Activation(out_activation, name="preds")(x)
-
-    return keras.Model(inputs=input_tensor, outputs=output, name=name)
+        x = u_block(
+            x,
+            block_prefix=f"UBlock{i+1}",
+            use_instance_norm=use_instance_norm,
+            out_activation=out_activation,
+        )
+    return keras.Model(inputs=input_tensor, outputs=x, name=name)
 
 
 def Generator(
@@ -101,9 +97,26 @@ def Discriminator(
 
 def u_block(
     input_tensor,
-    encoder_num_filters=[64, 128, 256, 512, 512, 512, 512, 512],
-    decoder_num_filters=[512, 1024, 1024, 1024, 1024, 512, 256, 128],
+    encoder_num_filters=[
+        64,
+        128,
+        256,
+        512,
+        512,
+        512,
+        512,
+    ],  # [64, 128, 256, 512, 512, 512, 512, 512],
+    decoder_num_filters=[
+        1024,
+        1024,
+        1024,
+        1024,
+        512,
+        256,
+        128,
+    ],  # [512, 1024, 1024, 1024, 1024, 512, 256, 128],
     use_instance_norm=True,
+    out_activation="tanh",
     block_prefix="",
 ):
     x = input_tensor
@@ -142,6 +155,16 @@ def u_block(
             padding="same",
             name=f"{block_prefix}_DecoderBlock{i+1}-TransposedConv",
         )(x)
+        # ?: Maybe add a normalization to avoid values from these layers go to high.
+        if use_instance_norm:
+            x = layers.GroupNormalization(
+                groups=num_filters,
+                name=f"{block_prefix}DecoderBlock{i+1}-Instancenorm",
+            )(x)
+        else:
+            x = layers.BatchNormalization(
+                name=f"{block_prefix}DecoderBlock{i+1}-Batchnorm"
+            )(x)
         x = layers.Activation("relu", name=f"{block_prefix}_DecoderBlock{i+1}-ReLU")(x)
 
         # All the decoder blocks have concatenate the encoder block output with
@@ -151,7 +174,14 @@ def u_block(
                 [encoder_blocks_outputs[-(i + 1)], x]
             )
 
-    return x
+    # Last operation: 1x1 conv to map the image to the input n_channels.
+    x = layers.Conv2D(
+        1,  # input_tensor.shape[-1]
+        kernel_size=(1, 1),
+        name=f"{block_prefix}_Decoder-Conv1x1",
+    )(x)
+    output = layers.Activation(out_activation, name=f"{block_prefix}_Decoder-act")(x)
+    return output
 
 
 class ReflectionPadding2D(layers.Layer):

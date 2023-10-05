@@ -1,6 +1,8 @@
 import ml_collections
 import numpy as np
+import nibabel as nib
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 gpus = tf.config.list_physical_devices("GPU")
 if gpus:
@@ -14,11 +16,14 @@ if gpus:
 
 import os
 from time import time
+from pathlib import Path
 
 from dataloader import get_dataset
 from schedulers import WarmUpCosine
 from models.cyclegan import CasnetGenerator, Generator, Discriminator
 from run_management import Logger, create_run_dir
+from preprocessing import min_max_normalization, window_image
+from eval import predict_and_save
 
 
 def train(config: ml_collections.ConfigDict):
@@ -270,10 +275,73 @@ def fit(
                     metric_name, valid_metrics[metric_name].result(), step=epoch
                 )
 
-        # comparison_metric = (
-        #     valid_metrics["cycle_y_loss"].result()
-        #     + valid_metrics["identity_y"].result()
-        # )
+        # Save an image with the predictions for patient test_022.
+        patient_id = "test_022"
+        lesion_idx = 69
+        examples_dir = Path("/home/sangohe/projects/lesion-aware-translation/examples")
+        adc_path = examples_dir / f"{patient_id}/{patient_id}_adc.nii.gz"
+        ncct_path = examples_dir / f"{patient_id}/{patient_id}_ncct.nii.gz"
+        mask_path = examples_dir / f"{patient_id}/masks/{patient_id}_r1_mask.nii.gz"
+
+        ncct = nib.load(ncct_path)
+        ncct_arr = ncct.get_fdata()
+        ncct_arr_win = window_image(ncct_arr, 40, 80)
+        ncct_min, ncct_max = np.min(ncct_arr), np.max(ncct_arr)
+        ncct_arr = min_max_normalization(ncct_arr)
+        ncct_arr_res = tf.image.resize(ncct_arr, [128, 128]).numpy()
+        # !: if config.model.out_activation == "tanh":
+        ncct_arr_res = (ncct_arr_res - 0.5) * 2.0
+
+        ncct_arr_win = min_max_normalization(ncct_arr_win)
+        ncct_arr_win_res = tf.image.resize(ncct_arr_win, [128, 128]).numpy()
+
+        adc = nib.load(adc_path)
+        adc_arr = adc.get_fdata()
+        adc_min, adc_max = np.min(adc_arr), np.max(adc_arr)
+        adc_arr = min_max_normalization(adc_arr)
+        adc_arr_res = tf.image.resize(adc_arr, [128, 128]).numpy()
+
+        # Compute the fake image.
+        adc_fake_arr = generator_g.predict(
+            ncct_arr_res.transpose(2, 0, 1)[..., np.newaxis], verbose=0
+        )
+        adc_fake_arr = adc_fake_arr.transpose(1, 2, 0, 3)[..., 0]
+        # !: if config.model.out_activation == "tanh":
+        adc_fake_arr = (adc_fake_arr / 2.0) + 0.5
+
+        # Create the plot.
+        idxs = np.array([lesion_idx + (i * 6) for i in range(-1, 2)])
+        metrics_slices = []
+        ncct_slices, adc_fake_slices, adc_slices = [], [], []
+        for idx in idxs:
+            ncct_slices.append(np.rot90(ncct_arr_win_res[..., idx]))
+            adc_fake_slices.append(np.rot90(adc_fake_arr[..., idx]))
+            adc_slices.append(np.rot90(adc_arr_res[..., idx]))
+            # metrics = compute_metrics(
+            #     adc_arr_res[..., idx : idx + 1], adc_fake_arr[..., idx : idx + 1]
+            # )
+            # metrics_slices.append(
+            #     "PSNR: {:.3f}, SSIM: {:.3f}".format(metrics["psnr"], metrics["ssim"])
+            # )
+        ncct_plot = np.vstack(ncct_slices)
+        adc_fake_plot = np.vstack(adc_fake_slices)
+        adc_plot = np.vstack(adc_slices)
+        final_plot = np.hstack([ncct_plot, adc_fake_plot, adc_plot])
+        fig, axs = plt.subplots(figsize=(20, 20))
+        axs.imshow(final_plot, cmap="gray")
+        axs.axis("off")
+        evaluation_dir = Path(logs_dir).parent / "evaluation"
+        figures_dir = evaluation_dir / "figures"
+        niftis_dir = evaluation_dir / "niftis"
+        figures_dir.mkdir(exist_ok=True)
+        niftis_dir.mkdir(exist_ok=True)
+        plt.savefig(
+            str(figures_dir / f"{patient_id}_epoch{epoch:03d}.png"),
+            bbox_inches="tight",
+            pad_inches=0,
+        )
+        plt.close()
+
         comparison_metric = valid_metrics["paired_y_loss"].result()
         if comparison_metric <= best_comparison_metric:
             print(
@@ -287,6 +355,14 @@ def fit(
         for metric_name in metric_names:
             train_metrics[metric_name].reset_states()
             valid_metrics[metric_name].reset_states()
+
+    # predict_and_save(
+    #     generator_g
+    #     patients_dirs
+    #     experiment_dir
+    #     ones_norm=True
+    #     resize_shape=(128, 128)
+    # )
 
 
 # Steps.
@@ -515,3 +591,17 @@ def create_directory(path: str) -> str:
     if not os.path.exists(path):
         os.makedirs(path)
     return path
+
+
+def compute_metrics(real_image, fake_image):
+    return {
+        "psnr": tf.image.psnr(real_image, fake_image, max_val=1.0).numpy(),
+        "ssim": tf.image.ssim(real_image, fake_image, max_val=1.0).numpy(),
+        "ssim_multiscale": tf.image.ssim_multiscale(
+            real_image, fake_image, max_val=1.0
+        ).numpy(),
+    }
+
+
+def min_max_back_normalization(x, x_min, x_max):
+    return (x * (x_max - x_min)) + x_min

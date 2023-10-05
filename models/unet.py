@@ -161,7 +161,7 @@ def PreNorm(fn):
 
 def Upsample(dim: int):
     def apply(inputs):
-        x = layers.UpSampling2D()(inputs)
+        x = layers.UpSampling2D(interpolation="bilinear")(inputs)
         x = layers.Conv2D(dim, kernel_size=3, padding="same")(x)
         return x
 
